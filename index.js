@@ -42,6 +42,7 @@ import { detectAntiBot, sendUnknownAlert } from './security/antiBot.js'
 import absurd from './commands/general/absurd.js'
 import { startSavedSubBots } from './subbots/manager.js'
 import absurdReply from './commands/general/absurdReply.js'
+import test from './commands/general/test.js';
 
 const PHONE_NUMBER = '201090950141'
 
@@ -189,7 +190,11 @@ function installPhantomBranding(sock) {
     try {
       // الرسائل النصية:
       // رسالة واحدة فقط = البانر + النص
-      if (typeof content?.text === 'string') {
+      if (content?.text === 'تست تست') {
+    return originalSendMessage(jid, content, options)
+}
+
+if (typeof content?.text === 'string') {
         const brandedText =
           await phantomBrandText(
             sock,
@@ -733,6 +738,22 @@ async function startPHANTOM() {
           msg
         })
       ) {
+        return
+      }
+
+      if (text.trim() === test.name) {
+        try {
+          await test.execute({
+            sock,
+            msg,
+            jid,
+            args: [],
+            text,
+            commandName: test.name
+          })
+        } catch (err) {
+          console.error('❌ خطأ في أمر تست:', err)
+        }
         return
       }
 
