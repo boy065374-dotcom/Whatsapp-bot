@@ -1,0 +1,52 @@
+.env
+.env.*
+!.env.example
+
+node_modules/
+session/
+sessions/
+subbots/*/session/
+**/session/
+**/sessions/
+
+*.db
+*.sqlite
+*.sqlite3
+*.db-*
+*.sqlite-*
+
+*.bak
+*.broken
+*.backup
+*.failed-rebuild
+index.js.backup-*
+index.js.bak.*
+index.js.before-*.bak
+
+# Secrets
+**/.env
+**/.env.*
+!**/.env.example
+
+# Runtime data and credentials
+**/auth_info/
+**/creds.json
+**/session/
+**/sessions/
+
+# Local backups and old copies
+backup-rm/
+*.before.rm.js
+*.before.automod.js
+*.before.subadmin.js
+*.before.automod.js
+*.broken
+*.broken-backup
+*.failed-rebuild
+*.bak
+*.backup
+index.js.backup-*
+index.js.bak.*
+
+# Local data
+phantom.db

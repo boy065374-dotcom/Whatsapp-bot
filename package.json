@@ -1,0 +1,5 @@
+{
+  "scripts": {
+    "start": "node -e \"const p=require('./packages/package.json'); require('child_process').execSync(p.scripts.start,{stdio:'inherit',shell:true})\""
+  }
+}
