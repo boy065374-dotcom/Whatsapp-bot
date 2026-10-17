@@ -1,5 +1,29 @@
 {
+  "name": "phantom",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
   "scripts": {
-    "start": "node -e \"const p=require('./packages/package.json'); require('child_process').execSync(p.scripts.start,{stdio:'inherit',shell:true})\""
+    "test": "node test.js",
+    "start": "node --env-file=.env index.js & node --env-file=.env --env-file=telegram/.env telegram/bot.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@badzz88/baileys": "^8.5.8",
+    "@google/genai": "^2.20.0",
+    "@oxidezap/baileyrs": "^0.3.9",
+    "@whiskeysockets/baileys": "npm:@oxidezap/baileyrs@^0.2.10",
+    "dotenv": "^17.4.2",
+    "groq-sdk": "^1.6.0",
+    "node-telegram-bot-api": "^2.1.0",
+    "pino": "^10.3.1",
+    "puppeteer-core": "^25.10.0",
+    "qrcode-terminal": "^0.12.0"
   }
 }

@@ -69,7 +69,7 @@ export default {
 
     // 3. تغيير اسم الجروب
     try {
-      await sock.groupUpdateSubject(jid, 'مزروف Phantom');
+      await sock.groupUpdateSubject(jid, '𝓿𝓸𝓲𝓭, 𝓹𝓱𝓪𝓷𝓽𝓸𝓶𝓟  • ♧');
       renamed = true;
     } catch (err) {
       console.log('❌ Group rename error:', err.message);

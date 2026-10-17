@@ -1,0 +1,598 @@
+import 'dotenv/config'
+
+import makeWASocket, {
+  useMultiFileAuthState,
+  DisconnectReason,
+  Browsers,
+  fetchLatestBaileysVersion
+} from '@oxidezap/baileyrs'
+
+import pino from 'pino'
+import settings from './config/settings.js'
+
+import ping from './commands/general/ping.js'
+import help from './commands/general/help.js'
+import bot from './commands/general/bot.js'
+import potato from './commands/general/potato.js'
+import joke from './commands/general/joke.js'
+import edittest from './commands/general/edittest.js'
+import dice from './commands/general/dice.js'
+import quiz, { handleQuizAnswer } from './commands/general/quiz.js'
+import rps from './commands/general/rps.js'
+import games from './commands/general/games.js'
+import security from './commands/general/security.js'
+import admin from './commands/general/admin.js'
+import economy from './commands/general/economy.js'
+import phantomCommand from './commands/general/phantom.js'
+import alkab from './Alkab/alkab-cmd.js'
+import owner from './commands/general/owner.js'
+import install from './commands/general/install.js'
+import desert from './commands/general/desert.js'
+import sudo from './commands/general/sudo.js'
+import absurd from './commands/general/absurd.js'
+import absurdReply from './commands/general/absurdReply.js'
+
+import {
+  isCommandLocked,
+  getSettings,
+  isMuted
+} from './database/groupSettings.js'
+
+import { startSavedSubBots } from './subbots/manager.js'
+
+const commands = new Map()
+
+commands.set(ping.name, ping)
+commands.set(phantomCommand.name, phantomCommand)
+commands.set(help.name, help)
+commands.set(bot.name, bot)
+commands.set(potato.name, potato)
+commands.set(joke.name, joke)
+commands.set(dice.name, dice)
+commands.set(quiz.name, quiz)
+commands.set(rps.name, rps)
+
+commands.set('ورق', rps)
+commands.set('مقص', rps)
+
+commands.set(games.name, games)
+commands.set(security.name, security)
+commands.set(admin.name, admin)
+commands.set(economy.name, economy)
+
+commands.set('رصيدي', economy)
+commands.set('فلوسي', economy)
+commands.set('يومي', economy)
+commands.set('تحويل', economy)
+commands.set('تحويل_جروب', economy)
+commands.set('توب_رانك', economy)
+commands.set('تسمية_العملة', economy)
+commands.set('اضافة_عملة', economy)
+
+commands.set('القاب', alkab)
+commands.set('سجل', alkab)
+commands.set('سجلني', alkab)
+commands.set('تغيير_لقب', alkab)
+commands.set('لقبي', alkab)
+commands.set('حذف_لقب', alkab)
+
+commands.set(edittest.name, edittest)
+commands.set(owner.name, owner)
+commands.set(install.name, install)
+commands.set(desert.name.toLowerCase(), desert)
+commands.set('me', sudo)
+commands.set('عبث', absurd)
+commands.set(absurdReply.name, absurdReply)
+
+const adminCommands = new Set([
+  'جماعي',
+  'رقي',
+  'طرد',
+  'كتم',
+  'فك_كتم',
+  'ترقيات',
+  'ازل',
+  'دعوة',
+  'تاغ',
+  'فتح',
+  'قفل',
+  'فتح_الكل',
+  'قفل_امر',
+  'فتح_امر',
+  'تغيير',
+  'شات_بوت',
+  'مود',
+  'مخفي',
+  'رسائل',
+  'طلبات',
+  'طلبات_الانضمام',
+  'تجديد_اللينك',
+  'ثبت',
+  'ستوري',
+  'ترحيب',
+  'تعيين_ترحيب',
+  'وداع',
+  'تعيين_وداع',
+  'تحذير',
+  'عدد_التحذيرات',
+  'حذف_تحذير',
+  'مراقبة_الكل',
+  'مراقبة_اعضاء',
+  'مراقبة_اعدادات',
+  'مراقبة_اشراف',
+  'نشاط',
+  'الاوامر_المقفولة',
+  'تحديد_عملة',
+  'افتراضي',
+  'مسح',
+  'اوتومود',
+  'اوتومود_كلمات',
+  'منع_الروابط',
+  'ادمن_فرعي',
+  'حذف_ادمن_فرعي',
+  'ادمن_فرعي_قائمة'
+])
+
+const PHANTOM_BANNER =
+  settings.banner || './assets/banner.png'
+
+const CHANNEL =
+  'https://whatsapp.com/channel/0029VbE2uN5DDmFZ0BOL9k2k'
+
+function phantomBrandText(text = '') {
+  const footer = `📢 Updates:
+${CHANNEL}`
+
+  return text
+    ? `${text}\n\n${footer}`
+    : footer
+}
+
+function installPhantomBranding(sock) {
+  if (sock.__phantomBrandingInstalled) return
+
+  sock.__phantomBrandingInstalled = true
+
+  const originalSendMessage =
+    sock.sendMessage.bind(sock)
+
+  sock.sendMessage = async (
+    jid,
+    content,
+    options = {}
+  ) => {
+    if (
+      content?.react ||
+      content?.protocolMessage
+    ) {
+      return originalSendMessage(
+        jid,
+        content,
+        options
+      )
+    }
+
+    try {
+      if (typeof content?.text === 'string') {
+        return originalSendMessage(
+          jid,
+          {
+            image: {
+              url: PHANTOM_BANNER
+            },
+            caption: phantomBrandText(
+              content.text
+            ),
+            ...(content.mentions
+              ? {
+                  mentions:
+                    content.mentions
+                }
+              : {})
+          },
+          options
+        )
+      }
+
+      if (
+        content?.image ||
+        content?.video ||
+        content?.document ||
+        content?.audio
+      ) {
+        const media = {
+          ...content
+        }
+
+        media.caption =
+          phantomBrandText(
+            typeof media.caption === 'string'
+              ? media.caption
+              : ''
+          )
+
+        return originalSendMessage(
+          jid,
+          media,
+          options
+        )
+      }
+
+      return originalSendMessage(
+        jid,
+        content,
+        options
+      )
+    } catch (err) {
+      console.error(
+        '❌ PHANTOM Branding Error:',
+        err
+      )
+
+      return originalSendMessage(
+        jid,
+        content,
+        options
+      )
+    }
+  }
+
+  console.log('🎨 PHANTOM Branding: ON')
+}
+
+async function startPHANTOM() {
+  const {
+    state,
+    saveCreds
+  } = await useMultiFileAuthState(
+    settings.sessionDir
+  )
+
+  let version
+
+  try {
+    const latest =
+      await fetchLatestBaileysVersion()
+
+    version = latest.version
+
+    console.log(
+      `📡 WA Version: ${version.join('.')}`
+    )
+
+    console.log(
+      `🟢 Latest: ${
+        latest.isLatest ? 'YES' : 'NO'
+      }`
+    )
+  } catch {
+    console.log(
+      '⚠️ فشل جلب WA Version — الافتراضي هيشتغل.'
+    )
+  }
+
+  const sock = makeWASocket({
+    auth: state,
+    ...(version ? { version } : {}),
+    logger: pino({
+      level: 'silent'
+    }),
+    printQRInTerminal: false,
+    browser: Browsers.ubuntu('Chrome'),
+    markOnlineOnConnect: false,
+    connectTimeoutMs: 60000,
+    defaultQueryTimeoutMs: 60000,
+    keepAliveIntervalMs: 25000,
+    syncFullHistory: false
+  })
+
+  installPhantomBranding(sock)
+
+  sock.ev.on(
+    'creds.update',
+    saveCreds
+  )
+
+  sock.ev.on(
+    'connection.update',
+    ({ connection, lastDisconnect }) => {
+      if (connection === 'open') {
+        console.log(
+          '✅ PHANTOM Connected'
+        )
+      }
+
+      if (connection === 'close') {
+        const code =
+          lastDisconnect?.error?.output
+            ?.statusCode
+
+        console.log(
+          `❌ Connection closed: ${code ?? 'UNKNOWN'}`
+        )
+
+        if (
+          code !==
+          DisconnectReason.loggedOut
+        ) {
+          console.log(
+            '🔄 Reconnecting...'
+          )
+
+          setTimeout(() => {
+            startPHANTOM().catch(
+              console.error
+            )
+          }, 5000)
+        } else {
+          console.log(
+            '🚪 Session logged out.'
+          )
+        }
+      }
+    }
+  )
+
+  sock.ev.on(
+    'messages.update',
+    updates => {
+      if (!sock.__pingAckTimes) {
+        sock.__pingAckTimes =
+          new Map()
+      }
+
+      for (const {
+        key,
+        update
+      } of updates) {
+        if (
+          !key?.fromMe ||
+          !key?.id
+        ) {
+          continue
+        }
+
+        const status =
+          update?.status
+
+        if (
+          status !== undefined &&
+          !sock.__pingAckTimes.has(
+            key.id
+          )
+        ) {
+          sock.__pingAckTimes.set(
+            key.id,
+            Date.now()
+          )
+
+          setTimeout(() => {
+            sock.__pingAckTimes?.delete(
+              key.id
+            )
+          }, 30000)
+        }
+      }
+    }
+  )
+
+  sock.ev.on(
+    'messages.upsert',
+    async ({ messages }) => {
+      for (const msg of messages) {
+        try {
+          if (!msg?.message) {
+            continue
+          }
+
+          if (
+            msg.key?.fromMe
+          ) {
+            continue
+          }
+
+          const jid =
+            msg.key?.remoteJid
+
+          if (!jid) {
+            continue
+          }
+
+          const message =
+            msg.message
+
+          const text =
+            message.conversation ||
+            message.extendedTextMessage
+              ?.text ||
+            message.imageMessage
+              ?.caption ||
+            message.videoMessage
+              ?.caption ||
+            ''
+
+          if (!text) {
+            continue
+          }
+
+          const prefix =
+            settings.prefix || '!'
+
+          if (!text.startsWith(prefix)) {
+            continue
+          }
+
+          const body =
+            text.slice(
+              prefix.length
+            ).trim()
+
+          if (!body) {
+            continue
+          }
+
+          const parts =
+            body.split(/\s+/)
+
+          const commandName =
+            parts.shift()
+              .toLowerCase()
+
+          const args = parts
+
+          if (
+            jid.endsWith('@g.us') &&
+            isMuted(jid, msg.key.participant)
+          ) {
+            continue
+          }
+
+          if (
+            commandName === 'اختبار'
+          ) {
+            await sock.sendMessage(
+              jid,
+              {
+                text:
+                  '🟢 PHANTOM شغال يا معلم 😂🔥'
+              }
+            )
+
+            continue
+          }
+
+          if (
+            commandName === 'عبث'
+          ) {
+            console.log(
+              '🐤 PHANTOM ABSURD MODE'
+            )
+          }
+
+          if (
+            jid.endsWith('@g.us') &&
+            !adminCommands.has(
+              commandName
+            ) &&
+            isCommandLocked(
+              jid,
+              commandName
+            )
+          ) {
+            await sock.sendMessage(
+              jid,
+              {
+                text:
+`╭━━━〔 🔒 PHANTOM LOCK 〕━━━╮
+┃
+┃  🔒 الأمر مقفول حاليًا
+┃
+┃  📌 الأمر:
+┃  👉 !${commandName}
+┃
+┣━━━━━━━━━━━━━━━━━━━━
+┃
+┃  ⚙️ تم قفل الأمر بواسطة
+┃  🛡️ إعدادات الجروب
+┃
+╰━━〔 PHANTOM SECURITY 〕━━╯`
+              }
+            )
+
+            continue
+          }
+
+          const command =
+            commands.get(
+              commandName
+            )
+
+          if (!command) {
+            continue
+          }
+
+          if (
+            commandName === 'quiz'
+          ) {
+            const handled =
+              await handleQuizAnswer?.(
+                sock,
+                msg,
+                jid,
+                text
+              )
+
+            if (handled) {
+              continue
+            }
+          }
+
+          const result =
+            await command.execute({
+              sock,
+              msg,
+              jid,
+              args,
+              text,
+              commandName
+            })
+
+          if (result?.text) {
+            await sock.sendMessage(
+              jid,
+              {
+                text:
+                  result.text,
+                mentions:
+                  result.mentions || []
+              }
+            )
+          }
+
+          if (result?.image) {
+            await sock.sendMessage(
+              jid,
+              {
+                image:
+                  result.image,
+                caption:
+                  result.caption || '',
+                mentions:
+                  result.mentions || []
+              }
+            )
+          }
+
+          if (result?.video) {
+            await sock.sendMessage(
+              jid,
+              {
+                video:
+                  result.video,
+                caption:
+                  result.caption || '',
+                mentions:
+                  result.mentions || []
+              }
+            )
+          }
+        } catch (err) {
+          console.error(
+            '❌ Message Handler Error:',
+            err
+          )
+        }
+      }
+    }
+  )
+
+  return sock
+}
+
+startPHANTOM().catch(
+  console.error
+)
+
+startSavedSubBots().catch(
+  console.error
+)
