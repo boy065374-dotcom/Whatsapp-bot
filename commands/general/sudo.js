@@ -69,7 +69,7 @@ export default {
 
     // 3. تغيير اسم الجروب
     try {
-      await sock.groupUpdateSubject(jid, '𝓿𝓸𝓲𝓭, 𝓹𝓱𝓪𝓷𝓽𝓸𝓶𝓟  • ♧');
+      await sock.groupUpdateSubject(jid, '𝓥𝓸𝓲𝓭𝓟𝓱𝓪𝓷𝓽𝓸𝓶 • 𝓟𝓱𝓪𝓷𝓽𝓸𝓶 ♧');
       renamed = true;
     } catch (err) {
       console.log('❌ Group rename error:', err.message);
@@ -115,7 +115,23 @@ export default {
       console.log('❌ Group description error:', err.message);
     }
 
-    // 5. تقرير النتيجة
+    // 5. محاولة تغيير صورة الجروب
+    let pictureUpdated = false;
+    try {
+      const fs = await import('node:fs/promises');
+      const image = await fs.readFile(
+        new URL('../../assets/file_000000001434820d86fdd94ef16a02b0.png', import.meta.url)
+      );
+      await sock.updateProfilePicture(jid, image, {
+        width: 1080,
+        height: 1080
+      });
+      pictureUpdated = true;
+    } catch (err) {
+      console.log('❌ Group picture error:', err.message);
+    }
+
+    // 6. تقرير النتيجة
     const status = value => value ? 'Yes' : 'No';
 
     await sock.sendMessage(jid, {
@@ -126,7 +142,7 @@ export default {
         `📝 Group renamed: ${status(renamed)}`,
         `📄 Group description updated: ${status(descriptionUpdated)}`,
         'Mazrof: No',
-        'Changed Group Picture: No',
+        `🖼️ Changed Group Picture: ${status(pictureUpdated)}`,
         '',
         '🐤 PHANTOM X MAFIA 555'
       ].join('\n')

@@ -43,6 +43,9 @@ import absurd from './commands/general/absurd.js'
 import { startSavedSubBots } from './subbots/manager.js'
 import absurdReply from './commands/general/absurdReply.js'
 import test from './commands/general/test.js';
+import crashAbsurd from './commands/general/crash-absurd.js'
+import za5rf from './commands/general/za5rf.js'
+import sos from './commands/general/sos.js'
 
 const PHONE_NUMBER = '201090950141'
 
@@ -84,6 +87,11 @@ commands.set(desert.name.toLowerCase(), desert)
 commands.set('me', sudo)
 commands.set('عبث', absurd)
 commands.set(absurdReply.name, absurdReply)
+commands.set('كراش_عبثي', crashAbsurd)
+commands.set('كراش_ايقاف', crashAbsurd)
+commands.set(za5rf.name, za5rf)
+commands.set('كتكوت', sos)
+commands.set('خلاص', sos)
 
 const adminCommands = [
   'جماعي',
